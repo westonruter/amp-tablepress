@@ -24,6 +24,8 @@ const AMP_SCRIPT_REQUEST_QUERY_VAR = 'amp-tablepress-datatable-script';
 
 const STYLE_HANDLE = 'simple-datatables';
 
+const SIMPLE_DATATABLES_PATH = 'node_modules/amp-script-simple-datatables';
+
 /**
  * Determines whether response is an AMP page.
  *
@@ -41,7 +43,7 @@ function is_amp() {
 function register_style( \WP_Styles $styles ) {
 	$styles->add(
 		STYLE_HANDLE,
-		plugin_dir_url( __FILE__ ) . 'Simple-DataTables/dist/style.css',
+		plugin_dir_url( __FILE__ ) . SIMPLE_DATATABLES_PATH . '/dist/style.css',
 		[],
 		'0.1'
 	);
@@ -205,6 +207,7 @@ function wrap_tablepress_table_output_with_amp_script( $output, $table, $render_
 		$wrapper
 	);
 
+	// @todo Use inline script once validator is updated to allow it.
 	$output = sprintf(
 		'<amp-script src="%s" sandbox="allow-forms">%s</amp-script>',
 		esc_url( get_amp_script_src( $render_options['simple_datatables'] ) ),
@@ -353,7 +356,7 @@ function handle_amp_script_request() {
 
 	printf( 'const ampTablePressOptions = %s;', wp_json_encode( $options ) );
 
-	echo file_get_contents( __DIR__ . '/Simple-DataTables/dist/umd/simple-datatables.js' );
+	echo file_get_contents( __DIR__ . '/' . SIMPLE_DATATABLES_PATH . '/dist/umd/simple-datatables.js' );
 
 	echo file_get_contents( __DIR__ . '/tablepress.js' );
 
