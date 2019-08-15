@@ -8,9 +8,9 @@
  * @copyright 2019 Google Inc.
  *
  * @wordpress-plugin
- * Plugin Name: TablePress AMPified
+ * Plugin Name: AMP TablePress
  * Description: Adding AMP compatibility on top of the TablePress plugin.
- * Plugin URI:  ...
+ * Plugin URI:  https://github.com/westonruter/amp-tablepress
  * Version:     0.1.0
  * Author:      Weston Ruter, Google
  * Author URI:  https://weston.ruter.net/
@@ -333,14 +333,14 @@ function get_amp_script_src( $options ) {
  * Handle amp-script request.
  */
 function handle_amp_script_request() {
-	if ( ! isset( $_GET[ AMP_SCRIPT_REQUEST_QUERY_VAR ] ) ) {
+	if ( ! isset( $_GET[ AMP_SCRIPT_REQUEST_QUERY_VAR ] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 		return;
 	}
 
 	header( 'Content-Type: text/javascript; charset=utf-8' );
 
 	// @todo Sanitize?
-	$options = json_decode( wp_unslash( $_GET[ AMP_SCRIPT_REQUEST_QUERY_VAR ] ), true );
+	$options = json_decode( wp_unslash( $_GET[ AMP_SCRIPT_REQUEST_QUERY_VAR ] ), true ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 
 	$error = null;
 	if ( json_last_error() ) {
@@ -356,9 +356,9 @@ function handle_amp_script_request() {
 
 	printf( 'const ampTablePressOptions = %s;', wp_json_encode( $options ) );
 
-	echo file_get_contents( __DIR__ . '/' . SIMPLE_DATATABLES_PATH . '/dist/umd/simple-datatables.js' );
+	echo file_get_contents( __DIR__ . '/' . SIMPLE_DATATABLES_PATH . '/dist/umd/simple-datatables.js' ); // phpcs:ignore
 
-	echo file_get_contents( __DIR__ . '/tablepress.js' );
+	echo file_get_contents( __DIR__ . '/init.js' ); // phpcs:ignore
 
 	exit;
 }
