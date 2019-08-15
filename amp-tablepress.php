@@ -87,60 +87,119 @@ function wrap_tablepress_table_output_with_amp_script( $output, $table, $render_
 	// @todo Hande: datatables_custom_commands.
 	// Note that scrollx is not supported
 	$simple_datatables_options = [
+		'fixedColumns'  => true,
 		'sortable'      => $render_options['datatables_sort'],
 		'paging'        => $render_options['datatables_paginate'],
 		'perPage'       => $render_options['datatables_paginate_entries'],
 		'perPageSelect' => $render_options['datatables_lengthchange'] ? [ 10, 25, 50, 100 ] : false,
 		'searchable'    => $render_options['datatables_filter'],
 		'labels'        => [
-			'perPage' => __( 'Show {select} entries', 'amp-tablepress' ),
-			'noRows'  => __( 'No matching records found', 'amp-tablepress' ),
-			'info'    => __( 'Showing {start} to {end} of {rows} entries', 'amp-tablepress' ),
+			'placeholder' => __( 'Search...', 'amp-tablepress' ),
+			'perPage'     => __( 'Show {select} entries', 'amp-tablepress' ),
+			'noRows'      => __( 'No matching records found', 'amp-tablepress' ),
+			'info'        => __( 'Showing {start} to {end} of {rows} entries', 'amp-tablepress' ),
 		],
 		'scrollY'       => $render_options['datatables_scrolly'],
 		'layout'        => [
 			'top'    => '{select}{search}',
-			'bottom' => $render_options['datatables_info'] ? '{info}{pager}' : '{pager}',
+			// @todo For some reason datatables_info is always false.
+			'bottom' => $render_options['datatables_info'] || true ? '{info}{pager}' : '{pager}',
 		],
 	];
 
-	$before = sprintf( '<amp-script src="%s" sandbox="allow-forms">', esc_url( get_amp_script_src( $simple_datatables_options ) ) );
+	$wrapper_classes = [ 'dataTable-wrapper' ];
+	if ( ! $render_options['table_head'] ) {
+		$wrapper_classes[] = 'no-header';
+	}
+	if ( ! $render_options['table_foot'] ) {
+		$wrapper_classes[] = 'no-footer';
+	}
+	if ( $simple_datatables_options['sortable'] ) {
+		$wrapper_classes[] = 'sortable';
+	}
+	if ( $simple_datatables_options['searchable'] ) {
+		$wrapper_classes[] = 'searchable';
+	}
+	if ( $simple_datatables_options['fixedColumns'] ) {
+		$wrapper_classes[] = 'fixedColumns';
+	}
 
-	$before .= "<div class=\"dataTable-wrapper dataTable-loading no-footer sortable searchable fixed-columns\">
-	<div class=\"dataTable-top\">
-		<div class=\"dataTable-dropdown\">
-			<label>
-				<select class=\"dataTable-selector\"><option value=\"5\">5</option><option value=\"10\" selected=\"\">10</option><option value=\"15\">15</option><option value=\"20\">20</option><option value=\"25\">25</option></select> entries per page
-			</label>
-		</div>
-		<div class=\"dataTable-search\"><input class=\"dataTable-input\" placeholder=\"Search...\" type=\"text\"></div>
-	</div>
-	<div class=\"dataTable-container\">";
+	$wrapper  = sprintf( '<div class="%s">', esc_attr( implode( ' ', $wrapper_classes ) ) );
+	$wrapper .= sprintf( '<div class="dataTable-top">%s</div>', $simple_datatables_options['layout']['top'] );
+	$wrapper .= sprintf(
+		'<div class="dataTable-container" %s>{table}</div>',
+		$simple_datatables_options['scrollY'] ? sprintf( ' style="%s"', esc_attr( 'overflow-y: auto; height:' . $simple_datatables_options['scrollY'] ) ) : ''
+	);
+	$wrapper .= sprintf( '<div class="dataTable-bottom">%s</div>', $simple_datatables_options['layout']['bottom'] );
+	$wrapper .= '</div>';
 
-	$after = "	</div>
-	<div class=\"dataTable-bottom\">
-		<div class=\"dataTable-info\">Showing 1 to 10 of 99 entries</div>
-		<div class=\"dataTable-pagination\">
-			<li class=\"pager\"><a href=\"#\" data-page=\"1\">‹</a></li>
-			<li class=\"active\"><a href=\"#\" data-page=\"1\">1</a></li>
-			<li class=\"\"><a href=\"#\" data-page=\"2\">2</a></li>
-			<li class=\"\"><a href=\"#\" data-page=\"3\">3</a></li>
-			<li class=\"\"><a href=\"#\" data-page=\"4\">4</a></li>
-			<li class=\"\"><a href=\"#\" data-page=\"5\">5</a></li>
-			<li class=\"\"><a href=\"#\" data-page=\"6\">6</a></li>
-			<li class=\"\"><a href=\"#\" data-page=\"7\">7</a></li>
-			<li class=\"ellipsis\"><a href=\"#\">…</a></li>
-			<li class=\"\"><a href=\"#\" data-page=\"10\">10</a></li>
-			<li class=\"pager\"><a href=\"#\" data-page=\"2\">›</a></li>
-		</div>
-	</div>
-</div>";
+	// Info placement.
+	$info = '';
+	if ( $simple_datatables_options['paging'] ) {
+		$info = $simple_datatables_options['labels']['info'];
+		$info = str_replace( '{start}', '1', $info );
+		$info = str_replace( '{end}', $simple_datatables_options['perPage'], $info );
+		// @todo Count may need to be minus 1 depending on header.
+		$info = str_replace( '{rows}', count( $table['data'] ), $info );
+	}
+	$wrapper = str_replace( '{info}', $info, $wrapper );
 
-	$after .= '</amp-script>';
+	// Per Page Select.
+	if ( $simple_datatables_options['paging'] && $simple_datatables_options['perPageSelect'] ) {
+		$dropdown = sprintf(
+			'<div class="dataTable-dropdown"><label>%s</label></div>',
+			esc_html( $simple_datatables_options['labels']['perPage'] )
+		);
+
+		$select_dropdown = '<select class="dataTable-selector">';
+		foreach ( $simple_datatables_options['perPageSelect'] as $per_page ) {
+			$select_dropdown .= sprintf(
+				'<option %s>%s</option>',
+				selected( $per_page, $simple_datatables_options['perPage'], false ),
+				esc_html( $per_page )
+			);
+		}
+		$select_dropdown .= '</select>';
+
+		$dropdown = str_replace( '{select}', $select_dropdown, $dropdown );
+		$wrapper  = str_replace( '{select}', $dropdown, $wrapper );
+	} else {
+		$wrapper = str_replace( '{select}', '', $wrapper );
+	}
+
+	// Searchable.
+	$search_input = '';
+	if ( $simple_datatables_options['searchable'] ) {
+		$search_input = sprintf(
+			'<div class="dataTable-search"><input class="dataTable-input" placeholder="%s" type="text"></div>',
+			esc_attr( $simple_datatables_options['labels']['placeholder'] )
+		);
+	}
+	$wrapper = str_replace( '{search}', $search_input, $wrapper );
+
+	$pagination = '<div class="dataTable-pagination"><ul>';
+	$page_count = ceil( count( $table['data'] ) / $simple_datatables_options['perPage'] );
+	if ( $page_count > 1 ) {
+		$pagination .= '<a role="button" tabindex="0" data-page="1">‹</a>';
+		for ( $i = 1; $i <= $page_count; $i++ ) {
+			$pagination .= sprintf( '<a role="button" tabindex="0" data-page="%d">%d</a>', $i, $i );
+		}
+		$pagination .= sprintf( '<a role="button" tabindex="0" data-page="%d">›</a>', $page_count );
+	}
+	$pagination .= '</ul></div>';
+
+	$wrapper = str_replace( '{pager}', $pagination, $wrapper );
+	$wrapper = str_replace( '{table}', $output, $wrapper );
+
+	$output = sprintf(
+		'<amp-script src="%s" sandbox="allow-forms">%s</amp-script>',
+		esc_url( get_amp_script_src( $simple_datatables_options ) ),
+		$wrapper
+	);
 
 	wp_enqueue_style( STYLE_HANDLE );
 
-	return $before . $output . $after;
+	return $output;
 }
 add_filter( 'tablepress_table_output', __NAMESPACE__ . '\wrap_tablepress_table_output_with_amp_script', 10, 3 );
 
