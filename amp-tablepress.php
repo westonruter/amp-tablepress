@@ -126,7 +126,7 @@ function wrap_tablepress_table_output_with_amp_script( $output, $table, $render_
 		$wrapper_classes[] = 'searchable';
 	}
 	if ( $simple_datatables_options['fixedColumns'] ) {
-		$wrapper_classes[] = 'fixedColumns';
+		$wrapper_classes[] = 'fixed-columns';
 	}
 
 	$wrapper  = sprintf( '<div class="%s">', esc_attr( implode( ' ', $wrapper_classes ) ) );
