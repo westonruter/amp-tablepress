@@ -56,8 +56,6 @@ add_action( 'wp_default_styles', __NAMESPACE__ . '\register_style' );
  * @return array Options.
  */
 function filter_tablepress_table_render_options( $render_options, $table ) {
-	$render_options['datatables_info'] = false;
-
 	if ( is_amp() && $render_options['use_datatables'] && $render_options['table_head'] && count( $table['data'] ) > 1 ) {
 
 		// Prevent enqueueing jQuery DataTables.
@@ -102,8 +100,7 @@ function wrap_tablepress_table_output_with_amp_script( $output, $table, $render_
 		'scrollY'       => $render_options['datatables_scrolly'],
 		'layout'        => [
 			'top'    => '{select}{search}',
-			// @todo For some reason datatables_info is always false.
-			'bottom' => $render_options['datatables_info'] || true ? '{info}{pager}' : '{pager}',
+			'bottom' => $render_options['datatables_info'] ? '{info}{pager}' : '{pager}',
 		],
 	];
 
@@ -180,11 +177,16 @@ function wrap_tablepress_table_output_with_amp_script( $output, $table, $render_
 	$pagination = '<div class="dataTable-pagination"><ul>';
 	$page_count = ceil( count( $table['data'] ) / $simple_datatables_options['perPage'] );
 	if ( $page_count > 1 ) {
-		$pagination .= '<a role="button" tabindex="0" data-page="1">‹</a>';
+		$pagination .= sprintf( '<li class="pager"><a role="button" tabindex="0" data-page="1">%s</a></li>', $simple_datatables_options['prevText'] );
 		for ( $i = 1; $i <= $page_count; $i++ ) {
-			$pagination .= sprintf( '<a role="button" tabindex="0" data-page="%d">%d</a>', $i, $i );
+			$pagination .= sprintf(
+				'<li class="%s"></li><a role="button" tabindex="0" data-page="%d">%d</a></li>',
+				esc_attr( 1 === $i ? 'active' : '' ),
+				$i,
+				$i
+			);
 		}
-		$pagination .= sprintf( '<a role="button" tabindex="0" data-page="%d">›</a>', $page_count );
+		$pagination .= sprintf( '<li class="pager"><a role="button" tabindex="0" data-page="%d">%s</a></li>', $page_count, $simple_datatables_options['nextText'] );
 	}
 	$pagination .= '</ul></div>';
 
