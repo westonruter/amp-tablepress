@@ -102,6 +102,14 @@ function wrap_tablepress_table_output_with_amp_script( $output, $table, $render_
 			'top'    => '{select}{search}',
 			'bottom' => $render_options['datatables_info'] ? '{info}{pager}' : '{pager}',
 		],
+		// Note that entity decoding is needed due to WorkerDOM limitation: <https://github.com/ampproject/worker-dom/issues/613>.
+		'prevText'      => html_entity_decode( '&lsaquo;', ENT_HTML5, 'UTF-8' ),
+		'nextText'      => html_entity_decode( '&rsaquo;', ENT_HTML5, 'UTF-8' ),
+		'ascText'       => html_entity_decode( '&blacktriangleup;', ENT_HTML5, 'UTF-8' ),
+		'descText'      => html_entity_decode( '&blacktriangledown;', ENT_HTML5, 'UTF-8' ),
+		'truncatePager' => false, // @todo Not supported as true.
+		'firstLast'     => false, // @todo Not yet supported as true.
+		'columns'       => false, // Disabled.
 	];
 
 	$wrapper_classes = [ 'dataTable-wrapper' ];
