@@ -20,6 +20,10 @@
 
 namespace AMP_TablePress;
 
+const PLUGIN_VERSION = '0.1.0';
+
+const DEVELOPMENT_MODE = true;
+
 const AMP_SCRIPT_REQUEST_QUERY_VAR = 'amp-tablepress-datatable-script';
 
 const STYLE_HANDLE = 'simple-datatables';

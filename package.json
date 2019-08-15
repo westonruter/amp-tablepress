@@ -1,14 +1,34 @@
 {
   "name": "amp-tablepress",
-  "version": "0.1.0",
-  "description": "",
-  "main": "index.js",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
-  "author": "",
+  "private": true,
+  "description": "AMP adapter plugin for the TablePress plugin for WordPress",
+  "author": "Weston Ruter",
   "license": "GPL-2.0-or-later",
+  "keywords": [
+    "wordpress",
+    "wordpress-plugin"
+  ],
+  "homepage": "https://github.com/westonruter/amp-tablepress",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/westonruter/amp-tablepress.git"
+  },
+  "bugs": {
+    "url": "https://github.com/westonruter/amp-tablepress/issues"
+  },
   "dependencies": {
     "amp-script-simple-datatables": "github:westonruter/AMP-Script-Simple-DataTables#v1.0.0"
-  }
+  },
+  "devDependencies": {
+    "grunt": "^1.0.4",
+    "grunt-contrib-copy": "^1.0.0",
+    "npm-run-all": "^4.1.5"
+  },
+  "scripts": {
+    "build": "npm-run-all build:*",
+    "build:clean": "if [ -e dist ]; then rm -r dist; fi",
+    "build:dist": "grunt dist",
+    "build:zip": "if [ -e amp-tablepress.zip ]; then rm amp-tablepress.zip; fi; cd dist; zip -r ../amp-tablepress.zip . -x '*wp-assets*'; cd ..; echo; echo \"ZIP of build: $(pwd)/amp-tablepress.zip\""
+  },
+  "title": "AMP TablePress"
 }
