@@ -22,13 +22,49 @@ namespace AMP_TablePress;
 
 const PLUGIN_VERSION = '0.1.0';
 
-const DEVELOPMENT_MODE = true;
+const DEVELOPMENT_MODE = true; // This is automatically rewritten to false during dist build.
 
 const AMP_SCRIPT_REQUEST_QUERY_VAR = 'amp-tablepress-datatable-script';
 
 const STYLE_HANDLE = 'simple-datatables';
 
 const SIMPLE_DATATABLES_PATH = 'node_modules/amp-script-simple-datatables';
+
+/**
+ * Check whether npm install has been performed.
+ *
+ * @return bool
+ */
+function has_installed_dependencies() {
+	return ! DEVELOPMENT_MODE || file_exists( __DIR__ . '/' . SIMPLE_DATATABLES_PATH );
+}
+
+/**
+ * Show error when needing to do npm install.
+ */
+function show_dependency_installation_admin_notice() {
+	?>
+	<div class="notice notice-error">
+		<p>
+			<strong><?php esc_html_e( 'AMP TablePress', 'amp-tablepress' ); ?>:</strong>
+			<?php
+			echo wp_kses_post(
+				sprintf(
+					/* translators: %s is the command to run */
+					__( 'Unable to initialize plugin due to being installed from source. Please run %s.', 'syntax-highlighting-code-block' ),
+					'<code>npm install</code>'
+				)
+			);
+			?>
+		</p>
+	</div>
+	<?php
+}
+
+if ( ! has_installed_dependencies() ) {
+	add_action( 'admin_notices', __NAMESPACE__ . '\show_dependency_installation_admin_notice' );
+	return;
+}
 
 /**
  * Determines whether response is an AMP page.
@@ -49,7 +85,7 @@ function register_style( \WP_Styles $styles ) {
 		STYLE_HANDLE,
 		plugin_dir_url( __FILE__ ) . SIMPLE_DATATABLES_PATH . '/dist/style.css',
 		[],
-		'0.1'
+		PLUGIN_VERSION
 	);
 }
 add_action( 'wp_default_styles', __NAMESPACE__ . '\register_style' );
