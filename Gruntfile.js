@@ -34,7 +34,7 @@ module.exports = function( grunt ) {
 
 			const paths = [
 				'amp-tablepress.php',
-				'readme.txt',
+				'readme.md',
 				'init.js',
 				'LICENSE',
 				'node_modules/amp-script-simple-datatables/dist/style.css',
