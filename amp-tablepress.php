@@ -105,6 +105,8 @@ function filter_tablepress_table_render_options( $render_options, $table ) {
 
 		// Set flag for wrap_tablepress_table_output_with_amp_script().
 		$render_options['use_amp_script_datatables'] = true;
+
+		wp_enqueue_style( STYLE_HANDLE );
 	}
 	return $render_options;
 }
@@ -253,8 +255,6 @@ function wrap_tablepress_table_output_with_amp_script( $output, $table, $render_
 		esc_url( get_amp_script_src( $render_options['simple_datatables'] ) ),
 		$wrapper
 	);
-
-	wp_enqueue_style( STYLE_HANDLE );
 
 	return $output;
 }
