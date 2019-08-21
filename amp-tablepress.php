@@ -377,7 +377,7 @@ function handle_amp_script_request() {
 		return;
 	}
 
-	header( 'Content-Type: text/javascript; charset=utf-8' );
+	header( 'Content-Type: application/javascript; charset=utf-8' );
 
 	// @todo Sanitize?
 	$options = json_decode( wp_unslash( $_GET[ AMP_SCRIPT_REQUEST_QUERY_VAR ] ), true ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended
