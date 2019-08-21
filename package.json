@@ -17,7 +17,7 @@
     "url": "https://github.com/westonruter/amp-tablepress/issues"
   },
   "dependencies": {
-    "amp-script-simple-datatables": "github:westonruter/AMP-Script-Simple-DataTables#v1.0.0"
+    "amp-script-simple-datatables": "github:westonruter/AMP-Script-Simple-DataTables#v1.0.1"
   },
   "devDependencies": {
     "grunt": "^1.0.4",
