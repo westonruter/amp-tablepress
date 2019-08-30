@@ -11,7 +11,7 @@
  * Plugin Name: AMP TablePress
  * Description: Adding AMP compatibility on top of the TablePress plugin.
  * Plugin URI:  https://github.com/westonruter/amp-tablepress
- * Version:     0.1.2
+ * Version:     0.1.3
  * Author:      Weston Ruter, Google
  * Author URI:  https://weston.ruter.net/
  * License:     GNU General Public License v2 (or later)
@@ -20,7 +20,7 @@
 
 namespace AMP_TablePress;
 
-const PLUGIN_VERSION = '0.1.2';
+const PLUGIN_VERSION = '0.1.3';
 
 const DEVELOPMENT_MODE = true; // This is automatically rewritten to false during dist build.
 
