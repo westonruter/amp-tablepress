@@ -1,7 +1,7 @@
-/* global ampTablePressOption, simpleDatatabless */
+/* global tableId, ampTablePressOption, simpleDatatabless */
 
 const dataTable = new simpleDatatables.DataTable(
-    document.querySelector('table'),
+    document.getElementById( tableId ),
     {
         ...ampTablePressOptions,
         prerendered: true

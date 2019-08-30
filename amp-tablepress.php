@@ -26,6 +26,8 @@ const DEVELOPMENT_MODE = true; // This is automatically rewritten to false durin
 
 const AMP_SCRIPT_REQUEST_QUERY_VAR = 'amp-tablepress-datatable-script';
 
+const AMP_SCRIPT_REQUEST_HMAC_QUERY_VAR = 'amp-tablepress-datatable-script-hmac';
+
 const STYLE_HANDLE = 'simple-datatables';
 
 const SIMPLE_DATATABLES_PATH = 'node_modules/amp-script-simple-datatables';
@@ -98,16 +100,19 @@ add_action( 'wp_default_styles', __NAMESPACE__ . '\register_style' );
  * @return array Options.
  */
 function filter_tablepress_table_render_options( $render_options, $table ) {
-	if ( is_amp() && $render_options['use_datatables'] && $render_options['table_head'] && count( $table['data'] ) > 1 ) {
-
-		// Prevent enqueueing jQuery DataTables.
-		$render_options['use_datatables'] = false;
-
-		// Set flag for wrap_tablepress_table_output_with_amp_script().
-		$render_options['use_amp_script_datatables'] = true;
-
-		wp_enqueue_style( STYLE_HANDLE );
+	$use_datatable = ( $render_options['use_datatables'] && $render_options['table_head'] && count( $table['data'] ) > 1 );
+	if ( ! $use_datatable ) {
+		return $render_options;
 	}
+
+	// Prevent enqueueing jQuery DataTables.
+	$render_options['use_datatables'] = false;
+
+	// Set flag for wrap_tablepress_table_output_with_amp_script().
+	$render_options['use_simple_datatables'] = true;
+
+	wp_enqueue_style( STYLE_HANDLE );
+
 	return $render_options;
 }
 add_filter( 'tablepress_table_render_options', __NAMESPACE__ . '\filter_tablepress_table_render_options', 1000, 3 );
@@ -121,7 +126,7 @@ add_filter( 'tablepress_table_render_options', __NAMESPACE__ . '\filter_tablepre
  * @return string Output.
  */
 function wrap_tablepress_table_output_with_amp_script( $output, $table, $render_options ) {
-	if ( ! is_amp() || empty( $render_options['use_amp_script_datatables'] ) ) {
+	if ( empty( $render_options['use_simple_datatables'] ) ) {
 		return $output;
 	}
 
@@ -250,11 +255,19 @@ function wrap_tablepress_table_output_with_amp_script( $output, $table, $render_
 	);
 
 	// @todo Use inline script once validator is updated to allow it.
-	$output = sprintf(
-		'<amp-script src="%s" sandbox="allow-forms">%s</amp-script>',
-		esc_url( get_amp_script_src( $render_options['simple_datatables'] ) ),
-		$wrapper
-	);
+	if ( is_amp() ) {
+		$output = sprintf(
+			'<amp-script src="%s" sandbox="allow-forms">%s</amp-script>',
+			esc_url( get_amp_script_src( $render_options['simple_datatables'], $render_options['html_id'] ) ),
+			$wrapper
+		);
+	} else {
+		$output = sprintf(
+			'%s<script async src="%s"></script>', // phpcs:ignore WordPress.WP.EnqueuedResources.NonEnqueuedScript
+			$wrapper,
+			esc_url( get_amp_script_src( $render_options['simple_datatables'], $render_options['html_id'] ) )
+		);
+	}
 
 	return $output;
 }
@@ -358,13 +371,18 @@ function prerender_table( $table_html, $table_data, $render_options ) {
 /**
  * Get URL for the amp-script with the options for a given table.
  *
- * @param array $options Options.
+ * @param array  $options Options.
+ * @param string $html_id ID for table element.
  * @return string Script URL.
  */
-function get_amp_script_src( $options ) {
+function get_amp_script_src( $options, $html_id ) {
+	$arg = wp_json_encode( compact( 'options', 'html_id' ) );
+
 	return add_query_arg(
-		AMP_SCRIPT_REQUEST_QUERY_VAR,
-		rawurlencode( wp_json_encode( $options ) ),
+		[
+			AMP_SCRIPT_REQUEST_QUERY_VAR      => rawurlencode( $arg ),
+			AMP_SCRIPT_REQUEST_HMAC_QUERY_VAR => rawurlencode( wp_hash( $arg ) ),
+		],
 		home_url( '/' )
 	);
 }
@@ -373,19 +391,26 @@ function get_amp_script_src( $options ) {
  * Handle amp-script request.
  */
 function handle_amp_script_request() {
-	if ( ! isset( $_GET[ AMP_SCRIPT_REQUEST_QUERY_VAR ] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+	if ( ! isset( $_GET[ AMP_SCRIPT_REQUEST_QUERY_VAR ] ) || ! isset( $_GET[ AMP_SCRIPT_REQUEST_HMAC_QUERY_VAR ] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 		return;
 	}
 
 	header( 'Content-Type: application/javascript; charset=utf-8' );
 
-	// @todo Sanitize?
-	$options = json_decode( wp_unslash( $_GET[ AMP_SCRIPT_REQUEST_QUERY_VAR ] ), true ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+	$arg_json = wp_unslash( $_GET[ AMP_SCRIPT_REQUEST_QUERY_VAR ] ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+	if ( wp_hash( $arg_json ) !== wp_unslash( $_GET[ AMP_SCRIPT_REQUEST_HMAC_QUERY_VAR ] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+		die( 'console.error( "HMAC verification failed" );' );
+	}
+
+	$arg = json_decode( $arg_json, true );
+	if ( ! isset( $arg['options'], $arg['html_id'] ) ) {
+		die( 'console.error( "Missing required args." );' );
+	}
 
 	$error = null;
 	if ( json_last_error() ) {
 		$error = json_last_error_msg();
-	} elseif ( ! is_array( $options ) ) {
+	} elseif ( ! is_array( $arg['options'] ) ) {
 		$error = __( 'Query param is not a JSON array.', 'amp-tablepress' );
 	}
 	if ( $error ) {
@@ -394,12 +419,49 @@ function handle_amp_script_request() {
 		exit;
 	}
 
-	printf( 'const ampTablePressOptions = %s;', wp_json_encode( $options ) );
+	echo '(function() {';
+
+	printf( 'const tableId = %s;', wp_json_encode( $arg['html_id'] ) );
+
+	printf( 'const ampTablePressOptions = %s;', wp_json_encode( $arg['options'] ) );
 
 	echo file_get_contents( __DIR__ . '/' . SIMPLE_DATATABLES_PATH . '/dist/umd/simple-datatables.js' ); // phpcs:ignore
 
 	echo file_get_contents( __DIR__ . '/init.js' ); // phpcs:ignore
 
+	echo '})();';
+
 	exit;
 }
 add_action( 'parse_request', __NAMESPACE__ . '\handle_amp_script_request' );
+
+/**
+ * Prevent tree-shaking datatable.
+ *
+ * @link https://github.com/ampproject/amp-wp/pull/1478
+ *
+ * @param array $sanitizers Sanitizer args.
+ * @return array Sanitizer args.
+ */
+function prevent_tree_shaking_datatable( $sanitizers ) {
+	$sanitizers['AMP_Style_Sanitizer']['dynamic_element_selectors'] = array_merge(
+		// In case another filter already defined dynamic_element_selectors.
+		! empty( $sanitizers['AMP_Style_Sanitizer']['dynamic_element_selectors'] ) ? $sanitizers['AMP_Style_Sanitizer']['dynamic_element_selectors'] : [],
+		// Duplicated from protected AMP_Style_Sanitizer::$DEFAULT_ARGS. Should be unnecessary as of <https://github.com/ampproject/amp-wp/pull/1478>.
+		[
+			'amp-list',
+			'amp-live-list',
+			'[submit-error]',
+			'[submit-success]',
+			'amp-script',
+		],
+		// What we're actually adding.
+		[
+			'.dataTable-wrapper',
+			'.dataTable-pagination',
+			'.dataTable-info',
+		]
+	);
+	return $sanitizers;
+}
+add_filter( 'amp_content_sanitizers', __NAMESPACE__ . '\prevent_tree_shaking_datatable' );
