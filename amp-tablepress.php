@@ -108,8 +108,11 @@ function filter_tablepress_table_render_options( $render_options, $table ) {
 	// Prevent enqueueing jQuery DataTables.
 	$render_options['use_datatables'] = false;
 
-	// Set flag for wrap_tablepress_table_output_with_amp_script().
-	$render_options['use_simple_datatables'] = true;
+	// Set flag for wrap_tablepress_table_output_with_amp_script(), as well as args for cache-busting.
+	$render_options['use_simple_datatables'] = [
+		'amp'     => is_amp(),
+		'version' => PLUGIN_VERSION,
+	];
 
 	wp_enqueue_style( STYLE_HANDLE );
 
